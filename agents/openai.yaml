@@ -1,4 +1,4 @@
 interface:
   display_name: "Session Handoff"
-  short_description: "Save and resume project context across Codex sessions/providers."
-  default_prompt: "Save or load SESSION_HANDOFF.md so a new Codex session can continue the project."
+  short_description: "Save and resume concise handoffs across agents."
+  default_prompt: "Use $session-handoff to read SESSION_HANDOFF.md in read-only mode and summarize the current project state."

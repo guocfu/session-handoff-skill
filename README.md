@@ -28,6 +28,7 @@ This is not:
 
 - A transcript merger.
 - A long-term memory database.
+- An automatic recall engine.
 - A full agent runtime.
 - A project governance framework.
 - A replacement for tests, source control, or documentation.
@@ -55,6 +56,8 @@ SESSION_HANDOFF.md
 ```
 
 The file uses stable headings so future agents can quickly scan the current goal, completed work, workspace state, key files, decisions, verification, open questions, next steps, and notes.
+
+The default resume behavior is **read-only**. A new agent should read the handoff, restate the current state, and recommend the next action without editing files. Continuing execution requires an explicit continue instruction.
 
 Minimal structure:
 
@@ -88,6 +91,18 @@ Branch: <branch name or unknown>
 
 ## Next Steps
 - <ordered next actions>
+
+## Next Session Opening Message
+
+### Read Only
+```text
+Use session-handoff to read SESSION_HANDOFF.md in read-only mode. Do not modify files or run mutating commands. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+```
+
+### Continue
+```text
+Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continue from Next Steps. Before changing files, briefly restate the current goal and planned first action.
+```
 
 ## Notes For Next Session
 - <preferences or gotchas>
@@ -139,9 +154,20 @@ python scripts/handoff.py check --root <project-root>
 
 ### Resume
 
+Default to read-only mode unless the user explicitly asks the agent to continue, implement, proceed, or execute the next steps.
+
+#### Read Only
+
 1. Read `SESSION_HANDOFF.md`.
-2. Restate the current goal, known state, and next action.
-3. Verify stale assumptions with local inspection.
+2. Inspect local state only as needed to verify stale assumptions.
+3. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+4. Do not edit files or run mutating commands.
+
+#### Continue
+
+1. Read `SESSION_HANDOFF.md`.
+2. Verify stale assumptions with local inspection.
+3. Restate the current goal and planned first action.
 4. Continue from the listed next step unless the user changes direction.
 
 ## Security

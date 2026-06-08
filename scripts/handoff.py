@@ -24,11 +24,21 @@ REQUIRED_HEADINGS = [
     "## Verification",
     "## Open Questions",
     "## Next Steps",
+    "## Next Session Opening Message",
+    "### Read Only",
+    "### Continue",
     "## Notes For Next Session",
 ]
 SECRET_PATTERNS = [
     re.compile(r"(?i)\b(api[_-]?key|token|secret|password|passwd|bearer)\b\s*[:=]\s*['\"]?[^'\"\s]{8,}"),
+    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{20,}"),
     re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
+    re.compile(r"sk-ant-[A-Za-z0-9_\-]{20,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    re.compile(r"\bgh[opsru]_[A-Za-z0-9_]{20,}"),
+    re.compile(r"\bxox[a-z]-[A-Za-z0-9\-]{10,}"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bya29\.[A-Za-z0-9_\-.]{20,}"),
     re.compile(r"(?i)-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"(?i)\b(cookie|set-cookie)\b\s*[:=]"),
 ]
@@ -135,6 +145,18 @@ Branch: {git_branch(root)}
 
 ## Next Steps
 - None
+
+## Next Session Opening Message
+
+### Read Only
+```text
+Use session-handoff to read SESSION_HANDOFF.md in read-only mode. Do not modify files or run mutating commands. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+```
+
+### Continue
+```text
+Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continue from Next Steps. Before changing files, briefly restate the current goal and planned first action.
+```
 
 ## Notes For Next Session
 - None

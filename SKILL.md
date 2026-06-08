@@ -1,15 +1,15 @@
 ---
 name: session-handoff
-description: Save, update, archive, and resume concise project handoff notes across Codex sessions, VS Code extension sessions, model/provider switches, and other coding-agent handoffs. Use when the user asks to save the current session, summarize progress before switching models or providers, create or update SESSION_HANDOFF.md, read a previous handoff, continue earlier work from a handoff, or prepare context for another agent.
+description: Save, update, archive, and resume concise project handoff notes across AI agents, tools, models, providers, editor integrations, and conversations. Use when Codex needs to create or update SESSION_HANDOFF.md, read a previous handoff, resume in read-only mode, continue from a handoff, summarize progress before switching sessions/providers, or prepare context for another agent.
 ---
 
 # Session Handoff
 
 ## Overview
 
-Use this skill to preserve only the actionable project state needed to continue work in a new session. Store the handoff in the repository as `SESSION_HANDOFF.md` by default.
+Use this skill to preserve only the actionable project state needed to continue work in a new session. Store the handoff in the project as `SESSION_HANDOFF.md` by default.
 
-This skill is not a transcript merger or long-term memory database. Keep the file short, current, and useful for the next agent.
+This skill is not a transcript merger, long-term memory database, automatic recall engine, or full agent runtime. Keep the file short, current, and useful for the next agent.
 
 ## Workflow
 
@@ -33,10 +33,21 @@ This skill is not a transcript merger or long-term memory database. Keep the fil
 
 ### Resume
 
+Default to **Read Only** unless the user explicitly asks to continue, implement, proceed, or execute next steps.
+
+#### Read Only
+
 1. Read `SESSION_HANDOFF.md`.
-2. Briefly restate the current goal, known state, and next action before continuing.
-3. Verify any stale assumptions with local inspection, especially changed files, test status, and branch state.
-4. Continue from the listed next step unless the user's latest instruction changes direction.
+2. Inspect local state only as needed to verify stale assumptions, such as branch, changed files, and relevant file existence.
+3. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+4. Do not edit files or run mutating commands.
+
+#### Continue
+
+1. Read `SESSION_HANDOFF.md`.
+2. Verify stale assumptions with local inspection, especially changed files, test status, branch state, and key files.
+3. Briefly restate the current goal and planned first action before changing anything.
+4. Continue from `## Next Steps` unless the user's latest instruction changes direction.
 
 ### Status
 
@@ -82,6 +93,18 @@ Branch: <branch name or unknown>
 ## Next Steps
 - <ordered next actions>
 
+## Next Session Opening Message
+
+### Read Only
+```text
+Use session-handoff to read SESSION_HANDOFF.md in read-only mode. Do not modify files or run mutating commands. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+```
+
+### Continue
+```text
+Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continue from Next Steps. Before changing files, briefly restate the current goal and planned first action.
+```
+
 ## Notes For Next Session
 - <user preferences, gotchas, provider/model context, or agent instructions>
 ```
@@ -92,6 +115,8 @@ Branch: <branch name or unknown>
 - Prefer facts over narrative. Do not paste full command logs or full chat transcripts.
 - Use concrete file paths and exact commands where they help continuation.
 - Record failed or skipped verification honestly.
+- Keep current state separate from historical evidence. Do not let old logs, old validation, or long-term decisions masquerade as the next action.
+- Use `Next Session Opening Message` to separate safe read-only resume from explicit continue-and-execute resume.
 - Do not include API keys, tokens, cookies, passwords, private keys, or raw credentials.
 - If a section has nothing to say, write `- None`.
 - Use the user's language unless the repository conventions clearly require another language.
