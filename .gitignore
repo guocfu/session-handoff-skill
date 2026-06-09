@@ -1,6 +1,10 @@
 # Archived handoff files may contain sensitive project context.
 .codex/handoffs/
 
+# Local research notes
+docs/
+doc/
+
 # Python local artifacts
 __pycache__/
 *.py[cod]
