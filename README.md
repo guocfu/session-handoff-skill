@@ -4,6 +4,8 @@ Lightweight, agent-agnostic session handoff workflow for preserving actionable p
 
 English is the default documentation language. A Simplified Chinese guide is included below.
 
+Handoff files keep stable English headings for parser and cross-agent consistency. The content under those headings should follow the active conversation or user's language unless the repository has a stronger convention. Commands, paths, code identifiers, and quoted errors should stay in their original spelling/language.
+
 - [English](#english)
 - [中文](#中文)
 
@@ -153,9 +155,13 @@ SESSION_HANDOFF.md
 
 The file uses stable headings so future agents can quickly scan the current goal, completed work, workspace state, key files, decisions, verification, open questions, next steps, and notes.
 
+The headings stay in English by design. Write the section content in the active conversation or user's language unless repository conventions clearly require another language, and keep commands, paths, code identifiers, and quoted errors verbatim.
+
 The default resume behavior is **read-only**. A new agent should read the handoff, restate the current state, and recommend the next action without editing files. Continuing execution requires an explicit continue instruction.
 
 The exact handoff template lives in [SKILL.md](SKILL.md) and can be printed with `python scripts/handoff.py template --root <project-root>`. Keeping the template source there avoids README and agent instructions drifting apart.
+
+Historical decisions or logs should be compressed into current conclusions before they enter the handoff. Keep only decisions, risks, verification results, or next steps that still affect the next session; leave full history in archives, commits, or separate project notes.
 
 ### Helper Commands
 
@@ -195,6 +201,8 @@ Validate required headings and scan for likely secrets:
 python scripts/handoff.py check --root <project-root>
 ```
 
+`check` also reports unresolved template placeholders, incomplete required sections, empty `Next Steps`, and empty `Verification`. A blank template is a starter file, not a ready handoff.
+
 `check` exit codes are: `0` OK, `1` missing handoff file, `2` validation problems.
 
 Run the test suite:
@@ -211,7 +219,7 @@ python -m unittest discover -s tests
 2. Archive the existing `SESSION_HANDOFF.md`, if present.
 3. Replace `SESSION_HANDOFF.md` with a concise, current handoff.
 4. Run the helper check.
-5. Fix missing sections or possible secrets before ending the session.
+5. Fix missing sections, unresolved placeholders, incomplete next steps, incomplete verification, or possible secrets before ending the session.
 
 #### Resume
 
@@ -276,6 +284,8 @@ MIT License. See [LICENSE](LICENSE).
 - 隔了一段时间后回到项目。
 
 `session-handoff` 把真正需要延续的状态写进项目文件里，下一位 agent 可以直接读取。
+
+文档默认语言是英文，并在本 README 中提供简体中文说明。handoff 文件本身使用固定英文标题，便于脚本和不同 agent 稳定解析；标题下面的正文应跟随当前会话或用户语言，除非仓库有更强的语言约定。命令、路径、代码标识符和引用的错误信息保持原文。
 
 ### 它不是什么
 
@@ -423,6 +433,8 @@ python scripts/handoff.py template --root <project-root> --write
 python scripts/handoff.py check --root <project-root>
 ```
 
+`check` 也会报告未替换模板占位符、未完成的必填 section、空的 `Next Steps` 和空的 `Verification`。空模板只是起点，不是一份可交接的 handoff。
+
 `check` 退出码：`0` 表示通过，`1` 表示缺少 handoff 文件，`2` 表示存在校验问题。
 
 运行测试：
@@ -438,6 +450,8 @@ python -m unittest discover -s tests
 脚本会扫描常见 secret 形态，但它不是完整的 secret scanner。用户和 agent 仍然应避免把任何凭据写入项目文件。
 
 本仓库的 `.gitignore` 已忽略 `.codex/handoffs/` 归档目录。如果你使用其他归档目录，应先把它加入自己的 ignore 规则，避免把敏感项目上下文提交进仓库。
+
+历史决策或日志进入 handoff 前应先压缩成当前结论。只保留仍影响下个会话的决策、风险、验证结果或下一步；完整历史应留在归档、commit 或单独项目笔记中。
 
 ### 和大型记忆系统的关系
 

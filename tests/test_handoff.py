@@ -17,6 +17,64 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(handoff)
 
 
+def complete_handoff_text() -> str:
+    return """# Session Handoff
+
+Updated: 2026-06-09 12:00 local time
+Project: demo
+Branch: main
+
+## Current Goal
+- Finish the session handoff validation changes.
+
+## Completed
+- Added helper tests for the handoff script.
+
+## Current State
+- Working tree has planned documentation and script edits.
+
+## Workspace Identity
+- Project name: demo
+- Git root name: demo
+- Relative path: .
+- Branch: main
+- HEAD: 0123456789abcdef0123456789abcdef01234567
+- Local root observed at save time: /tmp/demo
+- Dirty files: M scripts/handoff.py
+
+## Key Files
+- `scripts/handoff.py`: CLI validation helper.
+
+## Decisions
+- Keep the workflow file-based and avoid a runtime database.
+
+## Verification
+- `python -m unittest discover -s tests` passed.
+- No skipped checks.
+
+## Open Questions
+- None; no user decision is currently needed.
+
+## Next Steps
+- Review the resulting diff and decide whether to commit.
+
+## Next Session Opening Message
+
+### Read Only
+```text
+Use session-handoff to read SESSION_HANDOFF.md in read-only mode. Do not modify files or run mutating commands. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
+```
+
+### Continue
+```text
+Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continue from Next Steps. Before changing files, briefly restate the current goal and planned first action.
+```
+
+## Notes For Next Session
+- Keep the handoff concise and current.
+"""
+
+
 class HandoffCliTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -40,16 +98,26 @@ class HandoffCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn("Exists: no", result.stdout)
         self.assertIn("Handoff:", result.stdout)
+        self.assertIn("HEAD:", result.stdout)
 
-    def test_template_write_creates_valid_handoff(self) -> None:
+    def test_template_write_creates_incomplete_starter_handoff(self) -> None:
         write = self.run_handoff("template", "--root", str(self.root), "--write")
         self.assertEqual(write.returncode, 0, write.stderr)
 
         handoff = self.root / "SESSION_HANDOFF.md"
         self.assertTrue(handoff.exists())
         self.assertIn("## Next Session Opening Message", handoff.read_text(encoding="utf-8"))
+        self.assertIn("## Workspace Identity", handoff.read_text(encoding="utf-8"))
 
         check = self.run_handoff("check", "--root", str(self.root))
+        self.assertEqual(check.returncode, 2)
+        self.assertIn("Section appears incomplete: ## Current Goal", check.stderr)
+
+    def test_check_accepts_complete_handoff(self) -> None:
+        (self.root / "SESSION_HANDOFF.md").write_text(complete_handoff_text(), encoding="utf-8")
+
+        check = self.run_handoff("check", "--root", str(self.root))
+
         self.assertEqual(check.returncode, 0, check.stderr)
         self.assertIn("OK:", check.stdout)
 
@@ -79,9 +147,32 @@ class HandoffCliTests(unittest.TestCase):
         self.assertIn("Missing required heading: ## Current Goal", invalid.stderr)
         self.assertIn("Possible secret matched pattern:", invalid.stderr)
 
+    def test_check_reports_unresolved_placeholders(self) -> None:
+        text = complete_handoff_text().replace(
+            "Finish the session handoff validation changes.",
+            "<active objective>",
+        )
+        (self.root / "SESSION_HANDOFF.md").write_text(text, encoding="utf-8")
+
+        result = self.run_handoff("check", "--root", str(self.root))
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Unresolved template placeholder: <active objective>", result.stderr)
+
+    def test_check_reports_incomplete_next_steps_and_verification(self) -> None:
+        text = complete_handoff_text()
+        text = text.replace("- `python -m unittest discover -s tests` passed.\n- No skipped checks.", "- None")
+        text = text.replace("- Review the resulting diff and decide whether to commit.", "- None")
+        (self.root / "SESSION_HANDOFF.md").write_text(text, encoding="utf-8")
+
+        result = self.run_handoff("check", "--root", str(self.root))
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Next Steps must describe a real next action", result.stderr)
+        self.assertIn("Verification must record checks run", result.stderr)
+
     def test_check_reports_max_lines_problem(self) -> None:
-        write = self.run_handoff("template", "--root", str(self.root), "--write")
-        self.assertEqual(write.returncode, 0, write.stderr)
+        (self.root / "SESSION_HANDOFF.md").write_text(complete_handoff_text(), encoding="utf-8")
 
         result = self.run_handoff("check", "--root", str(self.root), "--max-lines", "1")
 

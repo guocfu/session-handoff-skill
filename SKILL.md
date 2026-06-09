@@ -79,6 +79,15 @@ Branch: <branch name or unknown>
 ## Current State
 - <workspace state, partial changes, active files, important constraints>
 
+## Workspace Identity
+- Project name: <repo or directory name>
+- Git root name: <repo root directory name or unknown>
+- Relative path: <path from workspace root or .>
+- Branch: <branch or unknown>
+- HEAD: <commit hash or unknown>
+- Local root observed at save time: <absolute path or unknown>
+- Dirty files: <summary or none>
+
 ## Key Files
 - `<path>`: <why it matters>
 
@@ -116,12 +125,16 @@ Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continu
 - Keep the handoff under about 150 lines unless the task genuinely needs more.
 - Prefer facts over narrative. Do not paste full command logs or full chat transcripts.
 - Use concrete file paths and exact commands where they help continuation.
+- Compress useful history into current conclusions: record only decisions, risks, verification results, or next steps that still affect the next session.
+- Do not write back old resume narration, old `Next Session Opening Message` text as current fact, full logs, full transcripts, other sessions' handoff files, or unverified recall/memory content.
 - Record failed or skipped verification honestly.
 - Keep current state separate from historical evidence. Do not let old logs, old validation, or long-term decisions masquerade as the next action.
 - Use `Next Session Opening Message` to separate safe read-only resume from explicit continue-and-execute resume.
 - Do not include API keys, tokens, cookies, passwords, private keys, or raw credentials.
 - If a section has nothing to say, write `- None`.
-- Use the user's language unless the repository conventions clearly require another language.
+- Keep the template headings exactly as written in English so scripts and future agents can parse the handoff consistently.
+- Write section body content in the active conversation or user's language unless repository conventions clearly require another language.
+- Preserve commands, file paths, code identifiers, and quoted error output in their original spelling/language.
 - Overwrite `SESSION_HANDOFF.md` on each save; rely on `.codex/handoffs/` archives for older versions.
 - Archives are retained only for short recovery. Do not treat them as long-term memory.
 - The repository `.gitignore` ignores `.codex/handoffs/`. If using a custom archive directory, make sure it is ignored before storing sensitive project context.

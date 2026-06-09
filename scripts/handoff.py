@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 DEFAULT_HANDOFF = "SESSION_HANDOFF.md"
@@ -20,6 +21,7 @@ REQUIRED_HEADINGS = [
     "## Current Goal",
     "## Completed",
     "## Current State",
+    "## Workspace Identity",
     "## Key Files",
     "## Decisions",
     "## Verification",
@@ -30,6 +32,12 @@ REQUIRED_HEADINGS = [
     "### Continue",
     "## Notes For Next Session",
 ]
+CONTENT_REQUIRED_HEADINGS = [
+    "## Current Goal",
+    "## Current State",
+    "## Workspace Identity",
+]
+INCOMPLETE_VALUES = {"", "-", "none", "n/a", "na", "unknown", "tbd", "todo", "null"}
 SECRET_PATTERNS = [
     re.compile(r"(?i)\b(api[_-]?key|token|secret|password|passwd|bearer)\b\s*[:=]\s*['\"]?[^'\"\s]{8,}"),
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{20,}"),
@@ -43,6 +51,7 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"(?i)\b(cookie|set-cookie)\b\s*[:=]"),
 ]
+PLACEHOLDER_PATTERN = re.compile(r"<[^>\n]{1,80}>")
 
 
 def resolve_root(root: str) -> Path:
@@ -76,22 +85,25 @@ def non_negative_int(value: str) -> int:
     return parsed
 
 
+def run_git(root: Path, args: list[str]) -> Optional[subprocess.CompletedProcess[str]]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return None
+
+
 def git_branch(root: Path) -> str:
-    commands = [
-        ["git", "branch", "--show-current"],
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-    ]
+    commands = [["branch", "--show-current"], ["rev-parse", "--abbrev-ref", "HEAD"]]
     for command in commands:
-        try:
-            result = subprocess.run(
-                command,
-                cwd=root,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-        except Exception:
+        result = run_git(root, command)
+        if result is None:
             continue
 
         branch = result.stdout.strip()
@@ -99,6 +111,45 @@ def git_branch(root: Path) -> str:
             return branch
 
     return "unknown"
+
+
+def git_head(root: Path) -> str:
+    result = run_git(root, ["rev-parse", "HEAD"])
+    if result is None or result.returncode != 0:
+        return "unknown"
+    return result.stdout.strip() or "unknown"
+
+
+def git_root_name(root: Path) -> str:
+    result = run_git(root, ["rev-parse", "--show-toplevel"])
+    if result is None or result.returncode != 0:
+        return "unknown"
+    git_root = result.stdout.strip()
+    return Path(git_root).name if git_root else "unknown"
+
+
+def dirty_files_summary(root: Path) -> str:
+    result = run_git(root, ["status", "--short"])
+    if result is None or result.returncode != 0:
+        return "unknown"
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
+        return "None"
+    shown = ", ".join(lines[:8])
+    if len(lines) > 8:
+        return f"{len(lines)} changed files; first entries: {shown}"
+    return shown
+
+
+def workspace_identity_text(root: Path) -> str:
+    return f"""## Workspace Identity
+- Project name: {root.name}
+- Git root name: {git_root_name(root)}
+- Relative path: .
+- Branch: {git_branch(root)}
+- HEAD: {git_head(root)}
+- Local root observed at save time: {root}
+- Dirty files: {dirty_files_summary(root)}"""
 
 
 def unique_archive_dest(dest_dir: Path, stamp: str, source_name: str) -> Path:
@@ -134,6 +185,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"Root: {root}")
     print(f"Handoff: {path}")
     print(f"Branch: {git_branch(root)}")
+    print(f"HEAD: {git_head(root)}")
     if path.exists():
         stat = path.stat()
         updated = dt.datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
@@ -179,6 +231,8 @@ Branch: {git_branch(root)}
 
 ## Current State
 - None
+
+{workspace_identity_text(root)}
 
 ## Key Files
 - None
@@ -240,6 +294,23 @@ def cmd_check(args: argparse.Namespace) -> int:
         if heading not in text:
             problems.append(f"Missing required heading: {heading}")
 
+    placeholders = sorted(set(match.group(0) for match in PLACEHOLDER_PATTERN.finditer(text)))
+    for placeholder in placeholders:
+        problems.append(f"Unresolved template placeholder: {placeholder}")
+
+    for heading in CONTENT_REQUIRED_HEADINGS:
+        section = section_text(text, heading)
+        if section is not None and section_is_incomplete(section):
+            problems.append(f"Section appears incomplete: {heading}")
+
+    next_steps = section_text(text, "## Next Steps")
+    if next_steps is not None and section_is_incomplete(next_steps):
+        problems.append("Next Steps must describe a real next action, or explain that the task is complete.")
+
+    verification = section_text(text, "## Verification")
+    if verification is not None and section_is_incomplete(verification):
+        problems.append("Verification must record checks run, or checks skipped with a reason.")
+
     for pattern in SECRET_PATTERNS:
         if pattern.search(text):
             problems.append(f"Possible secret matched pattern: {pattern.pattern}")
@@ -255,6 +326,41 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     print(f"OK: {path}")
     return 0
+
+
+def section_text(text: str, heading: str) -> Optional[str]:
+    lines = text.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            start = index + 1
+            break
+    if start is None:
+        return None
+
+    end = len(lines)
+    for index in range(start, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    return "\n".join(lines[start:end]).strip()
+
+
+def section_is_incomplete(section: str) -> bool:
+    content_lines = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("```"):
+            continue
+        if stripped.startswith("-"):
+            stripped = stripped[1:].strip()
+        content_lines.append(stripped)
+
+    if not content_lines:
+        return True
+
+    normalized = " ".join(content_lines).strip().lower()
+    return normalized in INCOMPLETE_VALUES
 
 
 def add_common_options(parser: argparse.ArgumentParser, *, defaults: bool) -> None:
