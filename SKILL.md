@@ -25,13 +25,13 @@ This skill is not a transcript merger, long-term memory database, automatic reca
    The archive command keeps the latest 20 archived handoffs by default. Use `--keep 0` only when the user explicitly wants unlimited archive history.
 
 3. Write a complete replacement `SESSION_HANDOFF.md` using the template below.
-4. Run:
+4. Run the helper check, or perform equivalent validation if the helper script is unavailable:
 
    ```bash
    python <skill-dir>/scripts/handoff.py check --root .
    ```
 
-5. If the check reports likely secrets or missing required sections, fix the file before finishing.
+5. If validation reports likely secrets, missing required sections, unresolved placeholders, incomplete next steps, incomplete verification, or similar quality issues, fix the file before finishing.
 
 ### Resume
 
@@ -141,6 +141,6 @@ Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continu
 
 ## Tool Notes
 
-`scripts/handoff.py` only handles deterministic support tasks: status, archive, template printing, and safety checks. The agent still writes the actual project summary because it has the task context.
+`scripts/handoff.py` only handles deterministic support tasks: status, archive, template printing, and safety checks. The helper is recommended for repeatable validation, but the core workflow is still the agent writing and reading `SESSION_HANDOFF.md`; if the helper is unavailable, perform equivalent validation manually. The agent still writes the actual project summary because it has the task context.
 
 `check` exits with `0` for OK, `1` for a missing handoff file, and `2` for validation problems.

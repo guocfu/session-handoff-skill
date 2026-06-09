@@ -15,7 +15,7 @@ Handoff files keep stable English headings for parser and cross-agent consistenc
 
 `session-handoff` is a small workflow and helper script for AI-assisted project continuity.
 
-It helps an agent save, validate, archive, and resume concise project state through a project-level `SESSION_HANDOFF.md` file. The goal is to make the next agent, model, provider, or conversation able to continue from the real current state without relying on hidden chat history.
+It helps an agent save, validate, archive, and resume concise project state through a project-level `SESSION_HANDOFF.md` file. The goal is to let the next session pick up where the current one left off, without starting from scratch.
 
 This project started as a Codex skill, but the handoff format is intentionally simple enough for any local coding agent that can read and write project files.
 
@@ -167,7 +167,7 @@ Historical decisions or logs should be compressed into current conclusions befor
 
 Run commands from the skill directory, or point to the script by path.
 
-The helper uses Python 3.9+ and no third-party packages.
+The helper uses Python 3.9+ and no third-party packages. It is recommended for repeatable validation and archive handling, but the core workflow is the agent writing and reading `SESSION_HANDOFF.md`; if the helper is unavailable, perform equivalent validation manually.
 
 Show whether a handoff exists:
 
@@ -218,8 +218,8 @@ python -m unittest discover -s tests
 1. Inspect the current project state, including changed files and verification results when available.
 2. Archive the existing `SESSION_HANDOFF.md`, if present.
 3. Replace `SESSION_HANDOFF.md` with a concise, current handoff.
-4. Run the helper check.
-5. Fix missing sections, unresolved placeholders, incomplete next steps, incomplete verification, or possible secrets before ending the session.
+4. Run the helper check, or perform equivalent validation if the helper script is unavailable.
+5. Fix missing sections, unresolved placeholders, incomplete next steps, incomplete verification, possible secrets, or similar quality issues before ending the session.
 
 #### Resume
 
@@ -269,7 +269,7 @@ MIT License. See [LICENSE](LICENSE).
 
 `session-handoff` 是一个轻量、通用、跨 agent 的会话交接工作流。
 
-它通过项目级 `SESSION_HANDOFF.md` 保存当前可继续执行的项目状态，让下一位 agent、下一个模型、下一个提供商或下一轮对话可以从真实状态继续，而不是依赖隐藏聊天历史。
+它通过项目级 `SESSION_HANDOFF.md` 保存当前可继续执行的项目状态，让下一次会话无需从零开始，直接接续当前进度。
 
 这个项目最初是 Codex skill，但 handoff 文件格式足够简单，任何能读写本地项目文件的 coding agent 都可以使用。
 
@@ -399,7 +399,7 @@ Default to read-only mode after reading SESSION_HANDOFF.md unless I explicitly a
 
 ### 辅助命令
 
-辅助脚本使用 Python 3.9+，不需要第三方依赖。
+辅助脚本使用 Python 3.9+，不需要第三方依赖。它推荐用于可重复校验和归档处理，但核心工作流仍然是 agent 读写 `SESSION_HANDOFF.md`；如果辅助脚本不可用，应手动执行等价校验。
 
 查看 handoff 状态：
 
