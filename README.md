@@ -272,6 +272,8 @@ Do not put credentials in handoff files.
 
 The validation helper scans for common secret-like patterns, including API keys, bearer tokens, private keys, passwords, and cookies. This check is useful, but it is not a complete secret scanner. Agents and users should still avoid writing raw credentials into project files.
 
+Archived handoff files are ignored by this repository's `.gitignore` through `.codex/handoffs/`. If you use a different archive directory, add it to your own ignore rules before saving sensitive project context.
+
 ### Relationship To Larger Handoff Systems
 
 Some projects need a full continuity runtime with project indexes, session logs, rule packs, upgrade tooling, and health checks.
@@ -286,7 +288,7 @@ Some projects need a full continuity runtime with project indexes, session logs,
 
 ### License
 
-Add a license before publishing or distributing this project widely.
+MIT License. See [LICENSE](LICENSE).
 
 ## 中文
 
@@ -458,8 +460,14 @@ python scripts/handoff.py check --root <project-root>
 
 脚本会扫描常见 secret 形态，但它不是完整的 secret scanner。用户和 agent 仍然应避免把任何凭据写入项目文件。
 
+本仓库的 `.gitignore` 已忽略 `.codex/handoffs/` 归档目录。如果你使用其他归档目录，应先把它加入自己的 ignore 规则，避免把敏感项目上下文提交进仓库。
+
 ### 和大型记忆系统的关系
 
 如果你需要长期记忆、自动 recall、向量检索、多用户隔离、session hooks 或项目治理 runtime，可以使用更大的系统。
 
 `session-handoff` 面向更小的场景：你只需要一份低摩擦、可审阅、任何 agent 都能读取和维护的交接文件。
+
+### 许可证
+
+MIT License。见 [LICENSE](LICENSE)。
