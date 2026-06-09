@@ -14,6 +14,7 @@ from pathlib import Path
 
 DEFAULT_HANDOFF = "SESSION_HANDOFF.md"
 DEFAULT_ARCHIVE_DIR = ".codex/handoffs"
+DEFAULT_ARCHIVE_KEEP = 20
 REQUIRED_HEADINGS = [
     "# Session Handoff",
     "## Current Goal",
@@ -65,20 +66,66 @@ def archive_path(root: Path, archive_dir: str) -> Path:
     return path.resolve()
 
 
-def git_branch(root: Path) -> str:
+def non_negative_int(value: str) -> int:
     try:
-        result = subprocess.run(
-            ["git", "branch", "--show-current"],
-            cwd=root,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except Exception:
-        return "unknown"
-    branch = result.stdout.strip()
-    return branch or "unknown"
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"Expected a non-negative integer: {value}") from exc
+    if parsed < 0:
+        raise argparse.ArgumentTypeError(f"Expected a non-negative integer: {value}")
+    return parsed
+
+
+def git_branch(root: Path) -> str:
+    commands = [
+        ["git", "branch", "--show-current"],
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+    ]
+    for command in commands:
+        try:
+            result = subprocess.run(
+                command,
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except Exception:
+            continue
+
+        branch = result.stdout.strip()
+        if result.returncode == 0 and branch and branch != "HEAD":
+            return branch
+
+    return "unknown"
+
+
+def unique_archive_dest(dest_dir: Path, stamp: str, source_name: str) -> Path:
+    for sequence in range(10000):
+        dest = dest_dir / f"{stamp}-{sequence:04d}-{source_name}"
+        if not dest.exists():
+            return dest
+    raise SystemExit(f"Could not create a unique archive name in: {dest_dir}")
+
+
+def current_archive_stamp() -> str:
+    return dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+
+
+def prune_archives(dest_dir: Path, source_name: str, keep: int) -> int:
+    if keep == 0:
+        return 0
+
+    suffix = f"-{source_name}"
+    archives = sorted(
+        (path for path in dest_dir.iterdir() if path.is_file() and path.name.endswith(suffix)),
+        key=lambda path: path.name,
+    )
+    stale = archives[:-keep]
+    for path in stale:
+        path.unlink()
+    return len(stale)
 
 
 def cmd_status(args: argparse.Namespace) -> int:
@@ -90,7 +137,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     if path.exists():
         stat = path.stat()
         updated = dt.datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
-        print(f"Exists: yes")
+        print("Exists: yes")
         print(f"Size: {stat.st_size} bytes")
         print(f"Modified: {updated}")
     else:
@@ -107,10 +154,12 @@ def cmd_archive(args: argparse.Namespace) -> int:
 
     dest_dir = archive_path(root, args.archive_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    dest = dest_dir / f"{stamp}-{source.name}"
+    dest = unique_archive_dest(dest_dir, current_archive_stamp(), source.name)
     shutil.copy2(source, dest)
     print(f"Archived {source} -> {dest}")
+    pruned = prune_archives(dest_dir, source.name, args.keep)
+    if pruned:
+        print(f"Pruned {pruned} archived handoff(s), keeping the latest {args.keep}")
     return 0
 
 
@@ -228,6 +277,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     archive = subparsers.add_parser("archive", parents=[common_after_command], help="Archive the current handoff if it exists")
     archive.add_argument("--archive-dir", default=DEFAULT_ARCHIVE_DIR, help=f"Archive directory. Defaults to {DEFAULT_ARCHIVE_DIR}.")
+    archive.add_argument(
+        "--keep",
+        type=non_negative_int,
+        default=DEFAULT_ARCHIVE_KEEP,
+        help=f"Archived handoffs to keep for this handoff file. Use 0 to disable cleanup. Defaults to {DEFAULT_ARCHIVE_KEEP}.",
+    )
     archive.set_defaults(func=cmd_archive)
 
     template = subparsers.add_parser("template", parents=[common_after_command], help="Print or write an empty handoff template")

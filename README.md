@@ -155,58 +155,13 @@ The file uses stable headings so future agents can quickly scan the current goal
 
 The default resume behavior is **read-only**. A new agent should read the handoff, restate the current state, and recommend the next action without editing files. Continuing execution requires an explicit continue instruction.
 
-Minimal structure:
-
-````md
-# Session Handoff
-
-Updated: YYYY-MM-DD HH:MM local time
-Project: <repo or project name>
-Branch: <branch name or unknown>
-
-## Current Goal
-- <active objective>
-
-## Completed
-- <completed work>
-
-## Current State
-- <workspace state>
-
-## Key Files
-- `<path>`: <why it matters>
-
-## Decisions
-- <decision and rationale>
-
-## Verification
-- <checks run and results>
-
-## Open Questions
-- <unknowns>
-
-## Next Steps
-- <ordered next actions>
-
-## Next Session Opening Message
-
-### Read Only
-```text
-Use session-handoff to read SESSION_HANDOFF.md in read-only mode. Do not modify files or run mutating commands. Restate the current goal, current state, risks/blockers, verification status, and recommended next action.
-```
-
-### Continue
-```text
-Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continue from Next Steps. Before changing files, briefly restate the current goal and planned first action.
-```
-
-## Notes For Next Session
-- <preferences or gotchas>
-````
+The exact handoff template lives in [SKILL.md](SKILL.md) and can be printed with `python scripts/handoff.py template --root <project-root>`. Keeping the template source there avoids README and agent instructions drifting apart.
 
 ### Helper Commands
 
 Run commands from the skill directory, or point to the script by path.
+
+The helper uses Python 3.9+ and no third-party packages.
 
 Show whether a handoff exists:
 
@@ -219,6 +174,8 @@ Archive the current handoff before replacing it:
 ```bash
 python scripts/handoff.py archive --root <project-root>
 ```
+
+By default, `archive` keeps the latest 20 archived copies for the current handoff filename. Use `--keep <n>` to change the limit, or `--keep 0` to disable cleanup.
 
 Print a blank handoff template:
 
@@ -236,6 +193,14 @@ Validate required headings and scan for likely secrets:
 
 ```bash
 python scripts/handoff.py check --root <project-root>
+```
+
+`check` exit codes are: `0` OK, `1` missing handoff file, `2` validation problems.
+
+Run the test suite:
+
+```bash
+python -m unittest discover -s tests
 ```
 
 ### Agent Workflow
@@ -424,6 +389,8 @@ Default to read-only mode after reading SESSION_HANDOFF.md unless I explicitly a
 
 ### 辅助命令
 
+辅助脚本使用 Python 3.9+，不需要第三方依赖。
+
 查看 handoff 状态：
 
 ```bash
@@ -435,6 +402,8 @@ python scripts/handoff.py status --root <project-root>
 ```bash
 python scripts/handoff.py archive --root <project-root>
 ```
+
+默认保留当前 handoff 文件最近 20 个归档副本。可以用 `--keep <n>` 调整数量，或用 `--keep 0` 关闭自动清理。
 
 打印模板：
 
@@ -452,6 +421,14 @@ python scripts/handoff.py template --root <project-root> --write
 
 ```bash
 python scripts/handoff.py check --root <project-root>
+```
+
+`check` 退出码：`0` 表示通过，`1` 表示缺少 handoff 文件，`2` 表示存在校验问题。
+
+运行测试：
+
+```bash
+python -m unittest discover -s tests
 ```
 
 ### 安全

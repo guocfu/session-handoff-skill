@@ -22,6 +22,8 @@ This skill is not a transcript merger, long-term memory database, automatic reca
    python <skill-dir>/scripts/handoff.py archive --root .
    ```
 
+   The archive command keeps the latest 20 archived handoffs by default. Use `--keep 0` only when the user explicitly wants unlimited archive history.
+
 3. Write a complete replacement `SESSION_HANDOFF.md` using the template below.
 4. Run:
 
@@ -121,7 +123,11 @@ Use session-handoff to read SESSION_HANDOFF.md, verify local state, then continu
 - If a section has nothing to say, write `- None`.
 - Use the user's language unless the repository conventions clearly require another language.
 - Overwrite `SESSION_HANDOFF.md` on each save; rely on `.codex/handoffs/` archives for older versions.
+- Archives are retained only for short recovery. Do not treat them as long-term memory.
+- The repository `.gitignore` ignores `.codex/handoffs/`. If using a custom archive directory, make sure it is ignored before storing sensitive project context.
 
 ## Tool Notes
 
 `scripts/handoff.py` only handles deterministic support tasks: status, archive, template printing, and safety checks. The agent still writes the actual project summary because it has the task context.
+
+`check` exits with `0` for OK, `1` for a missing handoff file, and `2` for validation problems.
